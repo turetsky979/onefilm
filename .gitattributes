@@ -1,0 +1,6 @@
+# Normalize line endings across platforms
+* text=auto eol=lf
+
+# Explicitly ensure shell scripts keep LF (critical on Linux routers)
+*.sh text eol=lf
+init.d/* text eol=lf

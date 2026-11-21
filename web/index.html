@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ONEFILM · 网盘一键下载至本地服务器</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--line:#e3e6ea;--txt:#1f2329;--sub:#8a9099;--pri:#2b6cb0;--pri2:#1d4f89;--ok:#2f855a;--err:#c53030;--warn:#b7791f}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);font-size:15px}
+.wrap{max-width:1000px;margin:0 auto;padding:18px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:22px;margin:0;letter-spacing:.5px}
+h1 .sub{display:block;font-size:12px;color:var(--sub);font-weight:400;letter-spacing:0;margin-top:3px}
+.badge{font-size:12px;color:var(--sub);font-weight:400;margin-left:8px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--txt);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px}
+.btn:hover{border-color:var(--pri);color:var(--pri)}
+.btn.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
+.btn.pri:hover{background:var(--pri2)}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:default}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.searchrow{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text]{flex:1;min-width:220px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:15px;outline:none}
+input[type=text]:focus{border-color:var(--pri)}
+.hint{color:var(--sub);font-size:13px;margin-top:8px;line-height:1.5}
+.info{background:#eef5fc;border:1px solid #c9ddf2;border-radius:8px;padding:10px 12px;font-size:13px;color:#2c5282;line-height:1.5}
+#login{text-align:center;padding-top:14vh}
+#login .card{max-width:380px;margin:0 auto;text-align:left}
+#login input{width:100%;margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:8px}
+#login .btn{width:100%}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.items{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto}
+.item{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.item:hover{border-color:var(--pri);background:#f8fbff}
+.item.sel{background:#eef5fc;border-color:var(--pri)}
+.item input[type=checkbox]{width:17px;height:17px;flex:none}
+.tag{font-size:12px;flex:none;color:var(--pri);background:#edf5ff;border-radius:5px;padding:2px 6px}
+.tag.f{color:#2f855a;background:#eefaf3}
+.fname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{color:var(--sub);font-size:12px;flex:none;text-align:right;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlbar{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+.count{color:var(--sub);font-size:13px;flex:1}
+.task{border-bottom:1px solid var(--line);padding:9px 0}
+.task:last-child{border-bottom:none}
+.tname{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:5px}
+.tname .st{color:var(--sub);flex:none}
+.bar{height:6px;background:#edf0f3;border-radius:4px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--pri);width:0;transition:width 1.9s linear}
+.tdet{color:var(--sub);font-size:12px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-complete{color:var(--ok)}.st-error{color:var(--err)}.st-active{color:var(--pri)}.st-warn{color:var(--warn)}
+.empty{color:var(--sub);text-align:center;padding:24px 0}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--line);border-top-color:var(--pri);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.crumb{color:var(--sub);font-size:12px;margin-bottom:8px;line-height:1.7}
+.crumb a{color:var(--pri);cursor:pointer;text-decoration:none}
+.sechead{color:var(--sub);font-size:12px;margin:10px 0 4px;font-weight:600}
+</style>
+</head>
+<body>
+<div id="app" class="wrap">
+  <header>
+    <h1>ONEFILM<span class="sub">网盘一键下载至本地服务器 · 群文件库实时搜索</span></h1>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="loadStatus()">刷新进度</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="searchrow">
+      <input type="text" id="kw" placeholder="搜索电影名，如：科学怪人 / 花样年华 / 教父" onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="btn pri" onclick="doSearch()">搜索</button>
+    </div>
+    <div class="hint" id="searchHint">群文件库搜索通常返回文件夹；点“展开”可查看里面的文件。</div>
+  </div>
+
+  <div class="card">
+    <div class="crumb" id="crumb"></div>
+    <div class="toolbar">
+      <b id="listTitle">搜索结果</b>
+      <div>
+        <button class="btn sm" onclick="selectAll(true)">全选</button>
+        <button class="btn sm" onclick="selectAll(false)">清空</button>
+      </div>
+    </div>
+    <div class="items" id="items"><div class="empty">输入关键词搜索群文件库。</div></div>
+    <div class="dlbar">
+      <span class="count" id="selCount">已选 0 项</span>
+      <button class="btn pri" id="dlBtn" onclick="doDownload()" disabled>开始下载</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar"><b>下载进度</b><div><span class="hint" id="targetDir" style="margin-right:10px">保存到本地服务器</span><button class="btn sm" onclick="clearDoneTasks()">清空已完成</button></div></div>
+    <div id="tasks"><div class="empty">暂无任务</div></div>
+  </div>
+</div>
+
+<script>
+let RESULTS=[], SELECTED=new Map(), MODE='group', LASTKW='';
+let BROWSE={id:'',root:'',crumbs:[]};
+let SIZE_CACHE={};
+const $=id=>document.getElementById(id);
+let LIB='/_电影库';  // overwritten by /api/info at startup
+async function loadInfo(){
+  try{
+    const d=await (await fetch('/api/info')).json();
+    if(d.library_baidu_path) LIB=d.library_baidu_path;
+    if(d.target_dir) $('targetDir').textContent='保存到 '+d.target_dir;
+  }catch(e){}
+}
+function loginOK(){ loadInfo(); loadStatus(); }
+function fmtSize(b){ b=+b; if(!b) return ''; return b>1073741824?(b/1073741824).toFixed(2)+' GB':(b/1048576).toFixed(0)+' MB'; }
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function encPath(p){return encodeURIComponent(p).replace(/'/g,'%27');}
+function keyOf(x){ return x.fs_id ? 'g'+x.fs_id+'_'+(x.msgId||'') : 'p'+x.path; }
+function setCrumb(items){
+  $('crumb').innerHTML=items.map((x,i)=>i===items.length-1?esc(x.t):'<a onclick="'+x.fn+'">'+esc(x.t)+'</a> &gt; ').join('');
+}
+async function doSearch(){
+  const kw=$('kw').value.trim();
+  if(!kw){ alert('请输入关键词'); return; }
+  if(BROWSE.id) await closeBrowse(false);
+  LASTKW=kw; MODE='group';
+  $('items').innerHTML='<div class="empty"><span class="spin"></span> 群文件库搜索中…</div>';
+  const r=await fetch('/api/search?kw='+encodeURIComponent(kw));
+  const d=await r.json();
+  if(!r.ok){ $('items').innerHTML='<div class="empty">'+(d.error||'搜索失败')+'</div>'; return; }
+  RESULTS=d.items||[]; SELECTED.clear();
+  setCrumb([{t:'群文件库搜索“'+kw+'”',fn:'clearResults()'}]);
+  $('listTitle').textContent='搜索结果 · '+kw;
+  $('searchHint').textContent=d.hint||'';
+  renderResults();
+}
+function clearResults(){
+  if(BROWSE.id) closeBrowse(false);
+  RESULTS=[]; SELECTED.clear(); MODE='group';
+  $('items').innerHTML='<div class="empty">输入关键词搜索群文件库。</div>'; updateSel();
+}
+function renderResults(){
+  if(!RESULTS.length){ $('items').innerHTML='<div class="empty">没有匹配项，换个关键词试试。</div>'; updateSel(); return; }
+  $('items').innerHTML=RESULTS.map((x,i)=>{
+    const k=keyOf(x), on=SELECTED.has(k), dir=!!x.isdir;
+    const canOpen = dir && (MODE==='group' || MODE==='browse');
+    return '<div class="item'+(on?' sel':'')+'" onclick="toggleRow('+i+')">'+
+      '<input type="checkbox" '+(on?'checked':'')+'>'+
+      '<span class="tag'+(dir?'':' f')+'">'+(dir?'文件夹':'文件')+'</span>'+
+      '<span class="fname" title="'+esc(x.name)+'">'+esc(x.name)+'</span>'+
+      '<span class="meta size-cell" data-i="'+i+'">'+(dir?(x.size>0?fmtSize(x.size):''):fmtSize(x.size))+'</span>'+
+      (x.source&&MODE==='group'?'<span class="meta">'+esc(x.source)+'</span>':'')+
+      (canOpen?'<button class="btn sm" onclick="event.stopPropagation();openSub('+i+')">展开</button>':'')+
+      '</div>';
+  }).join('');
+  updateSel();
+  fillFolderSizes();
+}
+async function fillFolderSizes(){
+  const dirs=RESULTS.map((x,i)=>({x,i})).filter(o=>o.x.isdir&&o.x.fs_id&&o.x.uk);
+  const need=dirs.filter(o=>SIZE_CACHE[o.x.fs_id]===undefined);
+  if(!need.length){ dirs.forEach(o=>paintSize(o.i)); return; }
+  dirs.forEach(o=>paintSize(o.i));
+  const uniq={}; need.forEach(o=>{uniq[o.x.fs_id]=o.x.uk;});
+  const items=Object.keys(uniq).map(fsid=>({fs_id:fsid,uk:uniq[fsid],isdir:true}));
+  try{
+    const r=await fetch('/api/dirsize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})});
+    const d=await r.json();
+    if(d.sizes) Object.assign(SIZE_CACHE,d.sizes);
+  }catch(e){}
+  RESULTS.forEach((x,i)=>{ if(x.isdir&&SIZE_CACHE[x.fs_id]!==undefined){ x.size=SIZE_CACHE[x.fs_id]; paintSize(i); } });
+}
+function paintSize(i){
+  const cell=document.querySelector('.size-cell[data-i="'+i+'"]');
+  if(!cell) return;
+  const x=RESULTS[i]; if(!x||!x.isdir) return;
+  const sz=SIZE_CACHE[x.fs_id];
+  if(sz!==undefined && sz>0) cell.textContent=fmtSize(sz);
+}
+function toggleRow(i){
+  const x=RESULTS[i]; if(!x) return;
+  const k=keyOf(x);
+  if(SELECTED.has(k)) SELECTED.delete(k); else SELECTED.set(k,x);
+  renderResults();
+}
+function selectAll(on){
+  SELECTED.clear();
+  if(on) RESULTS.forEach(x=>SELECTED.set(keyOf(x),x));
+  renderResults();
+}
+function updateSel(){ $('selCount').textContent='已选 '+SELECTED.size+' 项'; $('dlBtn').disabled=SELECTED.size===0; }
+
+// ---------- folder submenu ----------
+async function openSub(i){
+  const x=RESULTS[i]; if(!x||!x.isdir) return;
+  if(MODE==='group'){
+    $('items').innerHTML='<div class="empty"><span class="spin"></span> 正在展开文件夹…</div>';
+    const r=await fetch('/api/browse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item:x})});
+    const d=await r.json();
+    if(!r.ok){ $('items').innerHTML='<div class="empty">'+(d.error||'展开失败')+'</div>'; return; }
+    BROWSE.id=d.browse_id; BROWSE.root=d.root.path;
+    BROWSE.crumbs=[{t:'搜索结果',fn:'backToSearch()'},{t:d.root.name,fn:'goRoot()'}];
+    await loadBrowse(d.root.path);
+  } else if(MODE==='browse'){
+    await loadBrowse(x.path);
+  }
+}
+async function loadBrowse(path){
+  $('items').innerHTML='<div class="empty"><span class="spin"></span> 加载中…</div>';
+  let url='/api/list?path='+encodeURIComponent(path);
+  if(BROWSE.id) url+='&browse_id='+encodeURIComponent(BROWSE.id);
+  const r=await fetch(url);
+  const d=await r.json();
+  if(!r.ok){ $('items').innerHTML='<div class="empty">'+(d.error||'失败')+'</div>'; return; }
+  MODE='browse';
+  RESULTS=(d.items||[]).map(q=>({path:q.path,name:q.name,isdir:q.isdir,size:q.size,fs_id:q.fs_id,msgId:q.msgId,uk:q.uk,source:q.source}));
+  SELECTED.clear();
+  if(path!==BROWSE.root){
+    const rel=path.replace(BROWSE.root,'').split('/').filter(Boolean);
+    let acc=BROWSE.root;
+    const crumbs=[{t:'搜索结果',fn:'backToSearch()'},{t:BROWSE.crumbs[1]?BROWSE.crumbs[1].t:'文件夹',fn:'goRoot()'}];
+    rel.forEach((seg,i)=>{acc+='/'+seg; const p=acc; crumbs.push({t:seg,fn:"goBrowse('"+encPath(p)+"')"});});
+    BROWSE.crumbs=crumbs;
+  }
+  setCrumb(BROWSE.crumbs);
+  $('listTitle').textContent='文件夹内容（'+RESULTS.length+' 项）';
+  $('searchHint').textContent='可继续点“展开”进入子目录；勾选文件或文件夹下载时才会临时转存，完成后自动清理副本。';
+  renderResults();
+}
+function goRoot(){ if(BROWSE.root) loadBrowse(BROWSE.root); }
+function goBrowse(p){ loadBrowse(decodeURIComponent(p)); }
+async function backToSearch(){
+  await closeBrowse(false);
+  BROWSE={id:'',root:'',crumbs:[]}; MODE='group';
+  if(LASTKW) doSearch(); else clearResults();
+}
+async function closeBrowse(force){
+  if(!BROWSE.id) return;
+  try{ await fetch('/api/browse_close',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({browse_id:BROWSE.id,force:!!force})}); }catch(e){}
+  BROWSE.id='';
+}
+async function browseRoot(){ await openLocalFolder(LIB); }
+async function openLocalFolder(path){
+  if(BROWSE.id) await closeBrowse(false);
+  BROWSE={id:'',root:'',crumbs:[]}; MODE='lib';
+  $('items').innerHTML='<div class="empty"><span class="spin"></span> 加载中…</div>';
+  const r=await fetch('/api/list?path='+encodeURIComponent(path));
+  const d=await r.json();
+  if(!r.ok){ $('items').innerHTML='<div class="empty">'+(d.error||'失败')+'</div>'; return; }
+  RESULTS=(d.items||[]).map(q=>({path:q.path,name:q.name,isdir:q.isdir,size:q.size}));
+  SELECTED.clear();
+  const rel=path.replace(LIB,'').split('/').filter(Boolean);
+  const crumbs=[{t:'已转存素材库',fn:'browseRoot()'}];
+  let acc=LIB;
+  rel.forEach((seg,i)=>{acc+='/'+seg; const p=acc; crumbs.push({t:seg,fn:"openLocalFolder('"+encPath(p)+"')"});});
+  setCrumb(crumbs);
+  $('listTitle').textContent=rel[rel.length-1]||'素材库';
+  $('searchHint').textContent='这里只显示已转存到网盘的内容；从此处下载不会自动删除原文件。';
+  renderResults();
+}
+
+async function doDownload(){
+  const items=[...SELECTED.values()];
+  $('dlBtn').disabled=true; $('dlBtn').textContent='提交中…';
+  const body={items};
+  if(BROWSE.id) body.browse_id=BROWSE.id;
+  try{
+    const r=await fetch('/api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.gids&&d.gids.length){
+      SELECTED.clear(); renderResults();
+      const n=d.gids.length;
+      $('dlBtn').textContent='已提交 '+n+' 个'; setTimeout(()=>{ $('dlBtn').textContent='开始下载'; },2500);
+      loadStatus();
+    } else alert('提交失败：'+(d.errors||['未知错误']).join('; '));
+  }catch(e){ alert('提交失败：'+e); }
+  $('dlBtn').disabled=false;
+}
+async function loadStatus(){
+  const r=await fetch('/api/status'); const d=await r.json();
+  if(!r.ok)return;
+  const ts=d.tasks||[];
+  if(!ts.length){ $('tasks').innerHTML='<div class="empty">暂无任务</div>'; return; }
+  $('tasks').innerHTML=ts.map(t=>{
+    let pct=0;
+    if(t.status==='preparing') pct=4;
+    else if(t.total) pct=Math.min(100,Math.round(t.completed/t.total*100));
+    let st=t.status, cls='';
+    const rt=t.retries?' · 续传'+t.retries+'次':'';
+    if(t.status==='preparing'){st='准备中 <span class="spin"></span>';cls='st-active';}
+    else if(t.status==='complete'||t.status==='done'){
+      if(t.cleanup==='done'){st='已完成 · 副本已清理';cls='st-complete';}
+      else if(t.cleanup==='kept-failed'){st='已完成 · 副本保留（有失败项）';cls='st-warn';}
+      else if((t.cleanup||'').indexOf('failed')===0){st='已完成 · 清理失败';cls='st-warn';}
+      else{st='已完成';cls='st-complete';}
+    }
+    else if(t.status==='failed'){st=t.err_msg?'失败：'+esc(t.err_msg):'失败（重试次数用尽）';cls='st-error';}
+    else if(t.status==='error'||t.error){st='重试中'+rt;cls='st-active';}
+    else{st='下载中'+rt;cls='st-active';}
+    let det;
+    if(t.status==='preparing') det='正在转存并生成下载直链，请稍候…';
+    else det=fmtSize(t.completed)+' / '+fmtSize(t.total)+(t.speed?' · '+fmtSize(t.speed)+'/s':'')+(t.batch?' · '+esc(t.batch):'');
+    return '<div class="task"><div class="tname"><span>'+esc(t.name)+'</span><span><span class="st '+cls+'">'+st+'</span> <button class="btn sm" style="margin-left:6px" onclick="deleteTask(\''+t.gid+'\')">删除</button></span></div>'+
+      '<div class="bar"><i style="width:'+pct+'%"></i></div><div class="tdet">'+det+'</div></div>';
+  }).join('');
+}
+function toast(msg){
+  let t=document.getElementById('_toast');
+  if(!t){ t=document.createElement('div'); t.id='_toast';
+    t.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:rgba(20,20,20,.92);color:#fff;padding:9px 18px;border-radius:8px;z-index:9999;font-size:13px;pointer-events:none;opacity:0;transition:opacity .2s';
+    document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._t); t._t=setTimeout(()=>{ t.style.opacity='0'; },1800);
+}
+async function deleteTask(gid){
+  try{
+    const r=await fetch('/api/task_delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gid:gid})});
+    const d=await r.json();
+    if(r.ok&&d.deleted){ loadStatus(); toast('已删除该条记录'); }
+    else toast('删除失败：'+(d.error||'记录不存在'));
+  }catch(e){ toast('删除失败：'+e); }
+}
+async function clearDoneTasks(){
+  try{
+    const r=await fetch('/api/task_clear_done',{method:'POST'});
+    const d=await r.json();
+    loadStatus(); toast('已清空 '+(d.count||0)+' 条记录');
+  }catch(e){ toast('清空失败：'+e); }
+}
+setInterval(loadStatus,2000);
+loginOK();
+</script>
+</body>
+</html>

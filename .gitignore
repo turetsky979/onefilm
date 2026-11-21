@@ -1,0 +1,33 @@
+# ===== Credentials / secrets — NEVER commit =====
+config.json
+baidu_cookie.txt
+bduss.txt
+*.cookie
+*cookie*.txt
+!baidu_cookie.example.txt
+
+# ===== Runtime data =====
+data/
+*.log
+*.pid
+*.tmp
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ===== OS / editor =====
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ===== Local overrides =====
+.env
+*.local

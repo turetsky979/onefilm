@@ -1,0 +1,18 @@
+{
+  "_comment": "Copy this file to config.json and fill in your own values. NEVER commit config.json or baidu_cookie.txt.",
+
+  "openlist_base": "http://127.0.0.1:5244",
+  "openlist_token": "YOUR_OPENLIST_ADMIN_TOKEN",
+
+  "library_baidu_path": "/_电影库",
+  "library_root": "/1/_电影库",
+
+  "group_id": "YOUR_BAIDU_GROUP_ID",
+
+  "target_dir": "/path/to/your/movies",
+
+  "port": 8088,
+
+  "group_sign_salt": "YOUR_GROUP_SIGN_SALT",
+  "dirsize_sk": "YOUR_DIRSIZE_SK"
+}
