@@ -58,7 +58,7 @@ ONEFILM 是一个跑在你自己设备上的轻量 Web 面板。它面向"群文
 ### 安装（通用 Linux / 软路由 / NAS）
 
 ```bash
-git clone <your-repo-url> onefilm
+git clone https://github.com/turetsky979/onefilm.git onefilm
 cd onefilm
 
 # 1. 配置

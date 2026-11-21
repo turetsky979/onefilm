@@ -7,7 +7,7 @@ ONEFILM 只需 Python 3 和 curl，可以在普通 Linux 主机、NAS、软路�
 ### 1. 获取代码
 
 ```bash
-git clone <your-repo-url> onefilm
+git clone https://github.com/turetsky979/onefilm.git onefilm
 cd onefilm
 ```
 
